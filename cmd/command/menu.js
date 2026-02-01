@@ -1,105 +1,107 @@
+import fs from "fs";
+import path from "path";
+
 export default function(ev) {
-  
   ev.on({
-    name: 'menu',
-    cmd: ['menu', 'help'],
-    tags: 'Tools',
-    desc: 'Tampilkan menu utama',
-    run: async (xp, m, { args, chat, prefix }) => {
-      const category = args[0]?.toLowerCase();
+    name: "menu",
+    cmd: ["menu", "help", "menuall"],
+    tags: "Info Menu",
+    desc: "Menampilkan menu lengkap bot",
+    prefix: !0,
+    money: 0,
+    run: async (xp, m, { args, chat, prefix, cmd }) => {
+      const category = args.join(" ").toLowerCase();
       
-      if (category === 'allmenu') {
-        return showAllMenu(xp, m, chat);
+      
+      const plugins = ev.cmd || [];
+      const categorized = {};
+      
+      for (const plugin of plugins) {
+        const tag = plugin.tags || "Other Menu";
+        (categorized[tag] ||= []).push(...(Array.isArray(plugin.cmd) ? plugin.cmd : [plugin.cmd]));
+      }
+
+      const categories = Object.keys(categorized).sort();
+
+      if (category === "all" || cmd.includes("menuall")) {
+        return showAllMenu(xp, m, chat, categorized, prefix);
       }
       
-      if (category && menuCategories[category]) {
-        return showCategoryMenu(xp, m, chat, category);
+      if (category && categories.some(c => c.toLowerCase().includes(category))) {
+        const matched = categories.find(c => c.toLowerCase().includes(category));
+        return showCategoryMenu(xp, m, chat, matched, categorized[matched], prefix);
       }
-      
-      showMainMenu(xp, m, chat);
+
+      showMainMenu(xp, m, chat, categories, prefix);
     }
-  });
-  
-  
-  Object.keys(menuCategories).forEach(cat => {
-    ev.on({
-      name: `${cat}menu`,
-      cmd: [`menu ${cat}`, cat],
-      tags: 'Menu',
-      desc: `Menu ${cat}`,
-      run: async (xp, m, { chat }) => {
-        showCategoryMenu(xp, m, chat, cat);
-      }
-    });
   });
 }
 
 
-const menuCategories = {
-  admin: ['Admin tools', 'ban', 'kick', 'promote'],
-  ai: ['AI Chat', 'ask', 'gpt'],
-  anime: ['Anime quotes', 'waifu', 'husbando'],
-  berita: ['News', 'hotnews'],
-  download: ['TikTok', 'rule34', 'ig', 'yt'],
-  editor: ['Image editor', 'sticker', 'removebg'],
-  games: ['TicTacToe', 'suit', 'tebak'],
-  group: ['Group settings', 'antilink', 'welcome'],
-  information: ['Profile', 'owner', 'botinfo'],
-  islami: ['Jadwal sholat', 'quran', 'doa'],
-  'kerang ajaib': ['Kerang', 'apa', 'kapan'],
-  maker: ['Logo maker', 'textpro', 'photooxy'],
-  more: ['Random', 'quotes', 'meme'],
-  owner: ['Owner menu', 'broadcast', 'clear'],
-  panel: ['Dashboard', 'stats'],
-  pushkontak: ['Push contact', 'getcontact'],
-  random: ['Random text', 'quotes', 'fakta'],
-  store: ['Store', 'shop', 'buy'],
-  textpro: ['Text effects', 'neon', 'glitch'],
-  tools: ['Tools', 'calc', 'weather', 'translate']
-};
-
-const showMainMenu = async (xp, m, chat) => {
-  const menuText = `┏━❍『 *ᴍᴇɴᴜ ᴜᴛᴀᴍᴀ* 』❍
+const showMainMenu = async (xp, m, chat, categories, prefix) => {
+  const totalCmd = ev.cmd?.length || 0;
+  
+  const menuText = `┏━『 *ᴍᴇɴᴜ ᴜᴛᴀᴍᴀ* 』
 ┃
-${Object.entries(menuCategories).map(([cat, info], i) => 
-  `┣⌬ *${cat.replace(/\b\w/g, l => l.toUpperCase())}*`
-).join('\n')}
+┣⌬ *ᴀᴅᴍɪɴ*
+┣⌬ *ᴀɪ*
+┣⌬ *ᴀɴɪᴍᴇ*
+┣⌬ *ʙᴇʀɪᴛᴀ*
+┣⌬ *ᴅᴏᴡɴʟᴏᴀᴅ*
+┣⌬ *ᴇᴅɪᴛᴏʀ*
+┣⌬ *ɢᴀᴍᴇꜱ*
+┣⌬ *ɢʀᴏᴜᴘ*
+┣⌬ *ɪɴꜰᴏʀᴍᴀᴛɪᴏɴ*
+┣⌬ *ɪꜱʟᴀᴍɪ*
+┣⌬ *ᴋᴇʀᴀɴɢ ᴀᴊᴀɪʙ*
+┣⌬ *ᴍᴀᴋᴇʀ*
+┣⌬ *ᴍᴏʀᴇ*
+┣⌬ *ᴏᴡɴᴇʀ*
+┣⌬ *ᴘᴀɴᴇʟ*
+┣⌬ *ᴘᴜꜱʜᴋᴏɴᴛᴀᴋ*
+┣⌬ *ʀᴀɴᴅᴏᴍ*
+┣⌬ *ꜱᴛᴏʀᴇ*
+┣⌬ *ᴛᴇxᴛᴘʀᴏ*
+┣⌬ *ᴛᴏᴏʟꜱ*
 ┗━━━━━━━◧
 
 *ᴋᴇᴛɪᴋ ɴᴀᴍᴀ ᴋᴀᴛᴇɢᴏʀɪ ᴜɴᴛᴜᴋ ᴍᴇʟɪʜᴀᴛ ɪꜱɪɴʏᴀ.*
-*ᴄᴏɴᴛᴏʜ:* ${m.prefix}menu ai *ᴀᴛᴀᴜ* ${m.prefix}allmenu *ᴜɴᴛᴜᴋ ꜱᴇᴍᴜᴀ ᴍᴇɴᴜ*`;
-  
-  await xp.sendMessage(chat.id, { 
-    text: menuText 
-  }, { quoted: m });
+*ᴄᴏɴᴛᴏʜ:* ${prefix}menu ai *ᴀᴛᴀᴜ* ${prefix}menu all *ᴜɴᴛᴜᴋ ꜱᴇᴍᴜᴀ ᴍᴇɴᴜ*`;
+
+  await xp.sendMessage(chat.id, { text: menuText }, { quoted: m });
 };
 
-const showCategoryMenu = async (xp, m, chat, category) => {
-  const [title, commands] = menuCategories[category];
-  const menuText = `┏━❍『 *${category.toUpperCase()} MENU* 』❍
+
+const showCategoryMenu = async (xp, m, chat, category, commands, prefix) => {
+  const menuText = `┏━『 *${category.toUpperCase()} MENU* 』
 ┃
-${commands.map(cmd => `┃◉ *${cmd.toUpperCase()}*`).join('\n')}
+${commands.slice(0, 20).map(cmd => `┃◉ *${cmd.toUpperCase()}*`).join('\n')}
+${commands.length > 20 ? `\n┃\n┃◉ *+${commands.length - 20} LEBIH...*` : ''}
 ┃
 ┗━━━━━━━◧
 
-*Ketik: ${m.prefix}${category} [command] untuk menggunakan*`;
-  
-  await xp.sendMessage(chat.id, { 
-    text: menuText 
-  }, { quoted: m });
+*Ketik:* ${prefix}${category} [command] *untuk menggunakan*`;
+
+  await xp.sendMessage(chat.id, { text: menuText }, { quoted: m });
 };
 
-const showAllMenu = async (xp, m, chat) => {
-  const allCommands = Object.values(menuCategories).flatMap(([, cmds]) => cmds);
-  const menuText = `┏━❍『 *ALL COMMANDS* 』❍
-┃ *Total: ${allCommands.length} commands*
-┃
-${allCommands.map((cmd, i) => 
-  `┃${i % 10 === 0 ? '\n' : ''}◉ *${cmd.toUpperCase()}*`
-).join('\n')}
-┗━━━━━━━◧`;
+// All commands list
+const showAllMenu = async (xp, m, chat, categorized, prefix) => {
+  let allCmds = [];
+  for (const [cat, cmds] of Object.entries(categorized)) {
+    allCmds.push(...cmds.slice(0, 5)); // 5 per category
+  }
   
-  await xp.sendMessage(chat.id, { 
-    text: menuText 
-  }, { quoted: m });
+  const menuText = `┏━『 *ALL COMMANDS* 』
+┃ *Total:* ${allCmds.length}+ *commands*
+┃
+${allCmds.map((cmd, i) => 
+  `┃${i%5===0&&i>0?'\n┃':''}◉ *${cmd.toUpperCase()}*`
+).join('\n')}
+┃
+┗━━━━━━━◧
+
+*Type:* ${prefix}[command] *to use*`;
+
+  await xp.sendMessage(chat.id, { text: menuText }, { quoted: m });
 };
