@@ -1,16 +1,16 @@
 export default function(ev) {
   ev.on({
-    name: 'allcommands',
+    name: 'menu',
     cmd: ['menu'],  
     tags: 'Info Menu',
-    desc: 'Show ALL available commands',
+    desc: 'Show all commands or specific category',
     prefix: true,
     money: 0,
-    run: async (xp, m, { chat, prefix }) => {
+    run: async (xp, m, { args, chat, prefix }) => {
       const allCommands = [];
       const categorized = {};
       
-     
+    
       for (const plugin of ev.cmd || []) {
         const commands = Array.isArray(plugin.cmd) ? plugin.cmd : [plugin.cmd];
         const tag = plugin.tags || 'Tools';
@@ -22,11 +22,31 @@ export default function(ev) {
       }
 
       
-      let fullMenu = `┏━「 *ALL COMMANDS* 」\n┃\n`
+      const categoryArg = args[0]?.toLowerCase();
+      
+      if (categoryArg && categorized[categoryArg]) {
+       
+        const catCommands = categorized[categoryArg];
+        let menuText = `┏━『 *${categoryArg.toUpperCase()} MENU* 』\n┃\n`
+        
+        catCommands.slice(0, 15).forEach(cmd => {
+          menuText += `┃◉ *${cmd.toUpperCase()}*\n`
+        })
+        
+        if (catCommands.length > 15) {
+          menuText += `┃\n┃◉ *+${catCommands.length - 15} LEBIH...*\n`
+        }
+        
+        menuText += `┃\n┗━━━━━━━◧\n\n*Total: ${catCommands.length} commands*`
+        return xp.sendMessage(chat.id, { text: menuText }, { quoted: m });
+      }
+
+     
+      let mainMenu = `┏━『 *ALL COMMANDS* 』\n┃\n`
       
       const categories = {
         'Download Menu': '📥',
-        'Ai Menu': '🤖',
+        'Ai Menu': '🤖', 
         'Tools Menu': '🛠️',
         'Info Menu': 'ℹ️',
         'Nsfw Menu': '🔞',
@@ -37,23 +57,24 @@ export default function(ev) {
       for (const [category, emoji] of Object.entries(categories)) {
         const cmds = categorized[category] || []
         if (cmds.length > 0) {
-          fullMenu += `┠❯ *${emoji} ${category}* (${cmds.length} cmds)\n`
-          cmds.slice(0, 8).forEach(cmd => {
-            fullMenu += `┃  ◉ *${cmd.toUpperCase()}*\n`
+          mainMenu += `┠❯ *${emoji} ${category}* (${cmds.length} cmds)\n`
+          cmds.slice(0, 4).forEach(cmd => {  
+            mainMenu += `┃  ◉ *${cmd.toUpperCase()}*\n`
           })
-          if (cmds.length > 8) {
-            fullMenu += `┃  ◉ *+${cmds.length - 8} MORE...*\n`
+          if (cmds.length > 4) {
+            mainMenu += `┃  ...+${cmds.length - 4} more\n`
           }
-          fullMenu += `┃\n`
+          mainMenu += `┃\n`
         }
       }
 
-      fullMenu += `┗━━━━━━━━━━━━━━━━\n\n`
-      fullMenu += `*Total:* ${allCommands.length} commands\n`
-      fullMenu += `*Prefix:* \`${prefix}\``
-      fullMenu += `\n*Type:* \`${prefix}[command] [args]\``
-
-      await xp.sendMessage(chat.id, { text: fullMenu }, { quoted: m })
+      mainMenu += `┗━━━━━━━━━━━━━━━━\n\n`
+      mainMenu += `*Contoh:*\n`
+      mainMenu += `${prefix}menu fun\n`
+      mainMenu += `${prefix}menu ai\n`
+      mainMenu += `*Total:* ${allCommands.length} commands`
+      
+      await xp.sendMessage(chat.id, { text: mainMenu }, { quoted: m })
     }
   })
 }
