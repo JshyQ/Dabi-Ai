@@ -1,55 +1,80 @@
 import axios from 'axios'
+import cheerio from 'cheerio'
 
 export default function(ev) {
   ev.on({
     name: 'rule34video',
-    cmd: ['rule34video', 'r34v', 'r34video'],
+    cmd: ['r34v', 'rule34video'],
     tags: 'Nsfw Menu',
-    desc: 'Random Rule34 video from rule34video.com',
+    desc: 'Random Rule34 video',
     prefix: true,
-    money: 500,
-    exp: 0.4,
 
-    run: async (xp, m, { chat, args }) => {
+    run: async (xp, m, { chat }) => {
       try {
         await xp.sendMessage(chat.id, { react: { text: '⏳', key: m.key } })
 
-       
-        const res = await axios.get('http://rule34video.com/', {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        
+        const mainPage = await axios.get('https://rule34video.com/')
+        const $ = cheerio.load(mainPage.data)
+        
+      
+        const videoLinks = []
+        $('.post-preview a, .thumb a, [class*="video"] a').each((i, el) => {
+          const href = $(el).attr('href')
+          if (href && href.includes('/video/')) {
+            videoLinks.push(href)
           }
         })
 
-       
-        const videoRegex = /<video[^>]+src=["']([^"']+\.mp4)["'][^>]*>/gi
-        const videos = []
-        let match
-        
-        while (match = videoRegex.exec(res.data)) {
-          videos.push(match[1])
-        }
-
-        if (videos.length === 0) {
+        if (videoLinks.length === 0) {
           return xp.sendMessage(chat.id, { 
-            text: '❌ No videos found on rule34video.com' 
+            text: '❌ No videos available right now\nSite might be down' 
           }, { quoted: m })
         }
 
        
-        const randomVideo = videos[Math.floor(Math.random() * videos.length)]
+        const videoPageUrl = videoLinks[0]
+        const videoPage = await axios.get(videoPageUrl)
+        const $$ = cheerio.load(videoPage.data)
+
+      
+        const mp4Links = []
+        
+        
+        $$('video source, video src').each((i, el) => {
+          const src = $$(el).attr('src') || $$(el).attr('data-src')
+          if (src && src.includes('.mp4')) mp4Links.push(src)
+        })
+
+        
+        $$('[data-video], [data-mp4], [data-src*="mp4"]').each((i, el) => {
+          const src = $$(el).attr('data-video') || $$(el).attr('data-mp4') || $$(el).attr('data-src')
+          if (src && src.includes('.mp4')) mp4Links.push(src)
+        })
+
+        
+        const scripts = videoPage.data.match(/https?:\/\/[^"]+\.mp4/gi) || []
+        mp4Links.push(...scripts)
+
+        const videoUrl = mp4Links[0]
+        
+        if (!videoUrl) {
+          return xp.sendMessage(chat.id, { 
+            text: `❌ Video not found\n📱 Try manually: ${videoPageUrl}` 
+          }, { quoted: m })
+        }
 
         await xp.sendMessage(chat.id, {
-          video: { url: randomVideo },
-          caption: `🎥 *Rule34 Video*\n\n🔗 ${randomVideo}\n\n⚠️ NSFW Content`
+          video: { url: videoUrl },
+          caption: `🎥 *Rule34 Video*\n🔗 ${videoUrl.substring(0, 50)}...\n⚠️ NSFW`
         }, { quoted: m })
 
         await xp.sendMessage(chat.id, { react: { text: '✅', key: m.key } })
 
       } catch (error) {
-        console.error('Rule34Video error:', error.message)
+        console.error('R34V Error:', error.message)
         await xp.sendMessage(chat.id, { 
-          text: '❌ Failed to fetch Rule34 video\nTry again later!' 
+          text: `❌ Site down or blocked\n\n🔗 Alternative: rule34video.com` 
         }, { quoted: m })
       }
     }
