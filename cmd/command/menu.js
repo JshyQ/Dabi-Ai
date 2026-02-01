@@ -1,107 +1,61 @@
-import fs from "fs";
-import path from "path";
-
 export default function(ev) {
   ev.on({
-    name: "menu",
-    cmd: ["menu", "help", "menuall"],
-    tags: "Info Menu",
-    desc: "Menampilkan menu lengkap bot",
+    name: 'menu',
+    cmd: ['menu', 'help'],
+    tags: 'Info Menu',
+    desc: 'List semua command tersedia',
     prefix: !0,
     money: 0,
     run: async (xp, m, { args, chat, prefix, cmd }) => {
-      const category = args.join(" ").toLowerCase();
-      
-      
-      const plugins = ev.cmd || [];
+      const allCommands = [];
       const categorized = {};
       
-      for (const plugin of plugins) {
-        const tag = plugin.tags || "Other Menu";
-        (categorized[tag] ||= []).push(...(Array.isArray(plugin.cmd) ? plugin.cmd : [plugin.cmd]));
+      for (const plugin of ev.cmd || []) {
+        const commands = Array.isArray(plugin.cmd) ? plugin.cmd : [plugin.cmd];
+        const tag = plugin.tags || 'Tools';
+        
+        for (const command of commands) {
+          allCommands.push(command);
+          (categorized[tag] ||= []).push(command);
+        }
       }
 
-      const categories = Object.keys(categorized).sort();
+      const categoryArg = args[0]?.toLowerCase();
 
-      if (category === "all" || cmd.includes("menuall")) {
-        return showAllMenu(xp, m, chat, categorized, prefix);
+      if (categoryArg && categorized[categoryArg]) {
+        const catCommands = categorized[categoryArg];
+        const menuText = `┏━『 *${categoryArg.toUpperCase()} MENU* 』
+┃
+${catCommands.slice(0, 15).map(c => `┃◉ *${c.toUpperCase()}*`).join('\n')}
+${catCommands.length > 15 ? `\n┃\n┃◉ *+${catCommands.length - 15} LEBIH...*` : ''}
+┃
+┗━━━━━━━◧
+
+*Gunakan:* ${prefix}${categoryArg} [command]`;
+        
+        return xp.sendMessage(chat.id, { text: menuText }, { quoted: m });
       }
+
       
-      if (category && categories.some(c => c.toLowerCase().includes(category))) {
-        const matched = categories.find(c => c.toLowerCase().includes(category));
-        return showCategoryMenu(xp, m, chat, matched, categorized[matched], prefix);
-      }
+      const mainMenu = `┏━『 *ᴍᴇɴᴜ ᴜᴛᴀᴍᴀ* 』
+┃
+┣⌬ *ᴅᴏᴡɴʟᴏᴀᴅ ᴍᴇɴᴜ* (${categorized['Download Menu']?.length || 0} cmd) 📥
+┣⌬ *ᴀɪ ᴍᴇɴᴜ* (${categorized['Ai Menu']?.length || 0} cmd)        🤖
+┣⌬ *ᴛᴏᴏʟs ᴍᴇɴᴜ* (${categorized['Tools Menu']?.length || 0} cmd)   🛠️
+┣⌬ *ɪɴꜰᴏ ᴍᴇɴᴜ* (${categorized['Info Menu']?.length || 0} cmd)     ℹ️
+┣⌬ *ɴꜰꜱᴡ ᴍᴇɴᴜ* (${categorized['Nsfw Menu']?.length || 0} cmd)    🔞
+┣⌬ *ꜰᴜɴ ᴍᴇɴᴜ* (${categorized['Fun Menu']?.length || 0} cmd)      😄
+┣⌬ *ɢᴀᴍᴇ ᴍᴇɴᴜ* (${categorized['Game Menu']?.length || 0} cmd)    🎮
+┗━━━━━━━◧
 
-      showMainMenu(xp, m, chat, categories, prefix);
+*Contoh:*
+${prefix}menu download
+${prefix}menu ai  
+${prefix}menu game
+
+*Total Commands:* ${allCommands.length}`;
+
+      await xp.sendMessage(chat.id, { text: mainMenu }, { quoted: m });
     }
   });
 }
-
-
-const showMainMenu = async (xp, m, chat, categories, prefix) => {
-  const totalCmd = ev.cmd?.length || 0;
-  
-  const menuText = `┏━『 *ᴍᴇɴᴜ ᴜᴛᴀᴍᴀ* 』
-┃
-┣⌬ *ᴀᴅᴍɪɴ*
-┣⌬ *ᴀɪ*
-┣⌬ *ᴀɴɪᴍᴇ*
-┣⌬ *ʙᴇʀɪᴛᴀ*
-┣⌬ *ᴅᴏᴡɴʟᴏᴀᴅ*
-┣⌬ *ᴇᴅɪᴛᴏʀ*
-┣⌬ *ɢᴀᴍᴇꜱ*
-┣⌬ *ɢʀᴏᴜᴘ*
-┣⌬ *ɪɴꜰᴏʀᴍᴀᴛɪᴏɴ*
-┣⌬ *ɪꜱʟᴀᴍɪ*
-┣⌬ *ᴋᴇʀᴀɴɢ ᴀᴊᴀɪʙ*
-┣⌬ *ᴍᴀᴋᴇʀ*
-┣⌬ *ᴍᴏʀᴇ*
-┣⌬ *ᴏᴡɴᴇʀ*
-┣⌬ *ᴘᴀɴᴇʟ*
-┣⌬ *ᴘᴜꜱʜᴋᴏɴᴛᴀᴋ*
-┣⌬ *ʀᴀɴᴅᴏᴍ*
-┣⌬ *ꜱᴛᴏʀᴇ*
-┣⌬ *ᴛᴇxᴛᴘʀᴏ*
-┣⌬ *ᴛᴏᴏʟꜱ*
-┗━━━━━━━◧
-
-*ᴋᴇᴛɪᴋ ɴᴀᴍᴀ ᴋᴀᴛᴇɢᴏʀɪ ᴜɴᴛᴜᴋ ᴍᴇʟɪʜᴀᴛ ɪꜱɪɴʏᴀ.*
-*ᴄᴏɴᴛᴏʜ:* ${prefix}menu ai *ᴀᴛᴀᴜ* ${prefix}menu all *ᴜɴᴛᴜᴋ ꜱᴇᴍᴜᴀ ᴍᴇɴᴜ*`;
-
-  await xp.sendMessage(chat.id, { text: menuText }, { quoted: m });
-};
-
-
-const showCategoryMenu = async (xp, m, chat, category, commands, prefix) => {
-  const menuText = `┏━『 *${category.toUpperCase()} MENU* 』
-┃
-${commands.slice(0, 20).map(cmd => `┃◉ *${cmd.toUpperCase()}*`).join('\n')}
-${commands.length > 20 ? `\n┃\n┃◉ *+${commands.length - 20} LEBIH...*` : ''}
-┃
-┗━━━━━━━◧
-
-*Ketik:* ${prefix}${category} [command] *untuk menggunakan*`;
-
-  await xp.sendMessage(chat.id, { text: menuText }, { quoted: m });
-};
-
-// All commands list
-const showAllMenu = async (xp, m, chat, categorized, prefix) => {
-  let allCmds = [];
-  for (const [cat, cmds] of Object.entries(categorized)) {
-    allCmds.push(...cmds.slice(0, 5)); // 5 per category
-  }
-  
-  const menuText = `┏━『 *ALL COMMANDS* 』
-┃ *Total:* ${allCmds.length}+ *commands*
-┃
-${allCmds.map((cmd, i) => 
-  `┃${i%5===0&&i>0?'\n┃':''}◉ *${cmd.toUpperCase()}*`
-).join('\n')}
-┃
-┗━━━━━━━◧
-
-*Type:* ${prefix}[command] *to use*`;
-
-  await xp.sendMessage(chat.id, { text: menuText }, { quoted: m });
-};
