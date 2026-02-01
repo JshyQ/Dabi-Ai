@@ -1,5 +1,4 @@
 import { v2 as cloudinary } from 'cloudinary';
-import axios from 'axios';
 import { downloadMediaMessage } from 'baileys';
 import dotenv from 'dotenv';
 
@@ -11,56 +10,79 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-export default function upscale(ev) {
+export default function(ev) {
   ev.on({
     name: 'upscale',
-    cmd: ['upscale', 'hd2', 'enhance', 'aiupscale'],
+    cmd: ['upscale', 'hd2', 'enhance'],
     tags: 'Tools Menu',
-    desc: 'AI upscale image 2x-4x with Cloudinary',
-    owner: false,
+    desc: 'AI upscale image',
     prefix: true,
     money: 800,
-    exp: 0.5,
 
     run: async (xp, m, { chat, args, cmd }) => {
       try {
-        const q = m.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-        const img = q?.imageMessage || m.message?.imageMessage;
+        let quoted = m.message.extendedTextMessage?.contextInfo?.quotedMessage;
+        let image = quoted?.imageMessage || m.message.imageMessage;
         
-        if (!img) {
+        if (!image) {
           return xp.sendMessage(chat.id, { 
-            text: `Kirim/reply gambar dengan caption:\n\`${cmd} [2x|4x]\`\n\nContoh: .upscale 2x` 
+            text: `Reply gambar dengan ${cmd}\n\nContoh: .upscale` 
           }, { quoted: m });
         }
 
         await xp.sendMessage(chat.id, { react: { text: '⏳', key: m.key } });
 
-        const buffer = await downloadMediaMessage(
-          { message: q || m.message }, 
-          'buffer', 
-          {}, 
-          { logger: xp.logger, reuploadRequest: xp.updateMediaMessage }
+        let buffer = await downloadMediaMessage(
+          quoted ? { message: quoted } : m.message, 
+          'buffer'
         );
 
-        if (!buffer) throw new Error('Gagal download gambar');
-
-        const scale = parseFloat(args[0]) || 2;
-        if (![1, 2, 4].includes(scale)) {
-          return xp.sendMessage(chat.id, { text: 'Scale: 1x, 2x, atau 4x saja!' }, { quoted: m });
+        if (!buffer) {
+          throw new Error('Gagal download gambar');
         }
 
-        const uploadResult = await new Promise((resolve, reject) => {
-          cloudinary.uploader.upload_stream(
+        let scale = args[0] === '4x' ? 4 : 2;
+
+        let uploadResult = await new Promise((resolve, reject) => {
+          let stream = cloudinary.uploader.upload_stream(
             { 
               resource_type: 'image',
-              public_id: `upscale_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-              folder: 'dabi-ai'
+              folder: 'dabi-upscale'
             },
             (error, result) => {
               if (error) reject(error);
               else resolve(result);
             }
-          ).end(buffer);
+          );
+          stream.end(buffer);
         });
 
-        const ups
+        let upscaleUrl = cloudinary.url(uploadResult.public_id, {
+          transformation: [
+            { effect: 'upscale' },
+            { quality: 'auto' },
+            { fetch_format: 'auto' }
+          ]
+        });
+
+        let caption = `✨ AI Upscale ${scale}x\n\n` +
+          `📊 ${uploadResult.width}x${uploadResult.height} → ` +
+          `${Math.round(uploadResult.width * scale)}x${Math.round(uploadResult.height * scale)}\n` +
+          `✅ Enhanced!`;
+
+        await xp.sendMessage(chat.id, {
+          image: { url: upscaleUrl },
+          caption: caption
+        }, { quoted: m });
+
+        await xp.sendMessage(chat.id, { react: { text: '✅', key: m.key } });
+
+      } catch (error) {
+        console.log('Upscale error:', error.message);
+        await xp.sendMessage(chat.id, { 
+          text: '❌ Upscale gagal, coba gambar lain!' 
+        }, { quoted: m });
+      }
+    }
+  });
+}
