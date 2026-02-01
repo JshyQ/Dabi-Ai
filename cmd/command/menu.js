@@ -10,7 +10,7 @@ export default function(ev) {
       const allCommands = [];
       const categorized = {};
       
-    
+     
       for (const plugin of ev.cmd || []) {
         const commands = Array.isArray(plugin.cmd) ? plugin.cmd : [plugin.cmd];
         const tag = plugin.tags || 'Tools';
@@ -21,60 +21,62 @@ export default function(ev) {
         }
       }
 
-      
+     
       const categoryArg = args[0]?.toLowerCase();
+      console.log('=== MENU DEBUG ===');
+      console.log('User typed:', args.join(' '));
+      console.log('categoryArg:', categoryArg);
+      console.log('Available categories:', Object.keys(categorized));
+      console.log('==================');
+
+    
+      const exactMatch = Object.keys(categorized).find(cat => 
+        cat.toLowerCase() === categoryArg
+      );
       
-      if (categoryArg && categorized[categoryArg]) {
-       
-        const catCommands = categorized[categoryArg];
-        let menuText = `┏━『 *${categoryArg.toUpperCase()} MENU* 』\n┃\n`
+      if (exactMatch) {
+     
+        const catCommands = categorized[exactMatch];
+        let menuText = `┏━『 *${exactMatch.toUpperCase()} MENU* 』\n┃\n`;
         
         catCommands.slice(0, 15).forEach(cmd => {
-          menuText += `┃◉ *${cmd.toUpperCase()}*\n`
-        })
+          menuText += `┃◉ *${cmd.toUpperCase()}*\n`;
+        });
         
-        if (catCommands.length > 15) {
-          menuText += `┃\n┃◉ *+${catCommands.length - 15} LEBIH...*\n`
-        }
-        
-        menuText += `┃\n┗━━━━━━━◧\n\n*Total: ${catCommands.length} commands*`
+        menuText += `┃\n┗━━━━━━━◧\n\n*Total: ${catCommands.length} commands*`;
         return xp.sendMessage(chat.id, { text: menuText }, { quoted: m });
       }
 
      
-      let mainMenu = `┏━『 *ALL COMMANDS* 』\n┃\n`
+      let mainMenu = `┏━『 *ALL CATEGORIES* 』\n┃\n`;
       
-      const categories = {
-        'Download Menu': '📥',
-        'Ai Menu': '🤖', 
-        'Tools Menu': '🛠️',
-        'Info Menu': 'ℹ️',
-        'Nsfw Menu': '🔞',
-        'Fun Menu': '😄',
-        'Game Menu': '🎮'
-      }
+      const categoryDisplay = {
+        'Download Menu': '📥 Download',
+        'Ai Menu': '🤖 AI', 
+        'Tools Menu': '🛠️ Tools',
+        'Info Menu': 'ℹ️ Info',
+        'Nsfw Menu': '🔞 NSFW',
+        'Fun Menu': '😄 Fun',
+        'Game Menu': '🎮 Game'
+      };
 
-      for (const [category, emoji] of Object.entries(categories)) {
-        const cmds = categorized[category] || []
+      for (const [fullTag, displayName] of Object.entries(categoryDisplay)) {
+        const cmds = categorized[fullTag] || [];
         if (cmds.length > 0) {
-          mainMenu += `┠❯ *${emoji} ${category}* (${cmds.length} cmds)\n`
-          cmds.slice(0, 4).forEach(cmd => {  
-            mainMenu += `┃  ◉ *${cmd.toUpperCase()}*\n`
-          })
-          if (cmds.length > 4) {
-            mainMenu += `┃  ...+${cmds.length - 4} more\n`
-          }
-          mainMenu += `┃\n`
+          mainMenu += `┠❯ *${displayName}* (${cmds.length})\n`;
+          mainMenu += `┃  📝 Type: \`${prefix}menu ${fullTag.toLowerCase().replace(/ menu$/, '')}\`\n`;
+          cmds.slice(0, 2).forEach(cmd => {
+            mainMenu += `┃  ◉ *${cmd.toUpperCase()}*\n`;
+          });
+          mainMenu += `┃\n`;
         }
       }
 
-      mainMenu += `┗━━━━━━━━━━━━━━━━\n\n`
-      mainMenu += `*Contoh:*\n`
-      mainMenu += `${prefix}menu fun\n`
-      mainMenu += `${prefix}menu ai\n`
-      mainMenu += `*Total:* ${allCommands.length} commands`
+      mainMenu += `┗━━━━━━━━━━━━━━━━\n\n`;
+      mainMenu += `*Total:* ${allCommands.length} commands\n`;
+      mainMenu += `*Examples:*\n\`${prefix}menu "Download Menu"\n${prefix}menu "Fun Menu"\``;
       
-      await xp.sendMessage(chat.id, { text: mainMenu }, { quoted: m })
+      await xp.sendMessage(chat.id, { text: mainMenu }, { quoted: m });
     }
-  })
+  });
 }
