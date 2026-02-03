@@ -1,28 +1,20 @@
-let handler = async (m, { conn, usedPrefix, command }) => {
-  if (!conn) return console.log('conn not available during load')
+let handler = async (m, { conn }) => {
+  const randomImg = pickRandom(images)
   
-  try {
-    await conn.sendMessage(m.chat, { 
-      image: { url: pickRandom(lolio) }, 
-      caption: `_Nih Kak_` 
-    }, { quoted: m })
-  } catch (e) {
-    m.reply('❌ Loli load failed')
-  }
+  await conn.sendFile(m.chat, randomImg, 'random.jpg', `
+📸 *Random Image* 
+${randomImg}`, m)
 }
 
-handler.help = ['loli']
-handler.tags = ['anime']
-handler.command = /^loli$/i
-handler.premium = true
-handler.fail = null
-handler.register = false
+handler.help = ['randomimg']
+handler.tags = ['image']
+handler.command = /^(randomimg|ri)$/i
 
 function pickRandom(list) {
   return list[Math.floor(Math.random() * list.length)]
 }
 
-const lolio = [
+const image = [
 "https://i.pinimg.com/originals/1c/ee/de/1ceede5ff32d841aa17c36dfd9730608.jpg",
 "https://i.pinimg.com/originals/22/c7/95/22c795a87fb8f21051f087ee1940c334.jpg",
 "https://i.pinimg.com/originals/14/e8/fa/14e8fa35bf5b8c13f4f51e59c7ad2a1d.jpg",
