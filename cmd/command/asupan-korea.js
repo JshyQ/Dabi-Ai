@@ -1,26 +1,39 @@
-import fetch from 'node-fetch';
-
-let handler = async (m, { conn, usedPrefix, command }) => {
-  await m.reply('Please wait...');
-
+let handler = async (m, { conn } = {}) => {
+ 
+  if (!m || !conn) return
+  
   try {
-    let res = await fetch('https://raw.githubusercontent.com/ArifzynXD/database/master/asupan/korea.json');
-    let json = await res.json();
+    const waitMsg = await m.reply('⏳ Loading Korean asupan...')
     
+    let res = await fetch('https://raw.githubusercontent.com/ArifzynXD/database/master/asupan/korea.json')
+    if (!res.ok) throw new Error('API gagal')
     
-    const randomIndex = Math.floor(Math.random() * json.length);
-    const randomURL = json[randomIndex].url;
-
-   
-    await conn.sendFile(m.chat, randomURL, 'trap.png', '', m);
+    let json = await res.json()
+    
+    if (!json || !Array.isArray(json) || json.length === 0) {
+      throw new Error('No Korean asupan available')
+    }
+    
+    const randomIndex = Math.floor(Math.random() * json.length)
+    const randomURL = json[randomIndex].url
+    
+    if (!randomURL) throw new Error('Invalid URL')
+    
+    await conn.sendFile(m.chat, randomURL, 'korea.jpg', `
+🇰🇷 *KOREAN ASUPAN* 
+_Nih Kak_ 🔥`, m)
+    
+    waitMsg.delete() 
+    
   } catch (error) {
-    console.error('Error fetching and sending images:', error);
-    await m.reply('An error occurred while fetching and sending images.');
+    console.error('Korea plugin error:', error)
+    m.reply('❌ Gagal load Korean asupan!\nCoba lagi nanti 😿')
   }
-};
+}
 
-handler.tags = ['asupan','premium'];
-handler.help = handler.command = ['korea'];
-handler.premium = true;
+handler.tags = ['asupan', 'premium', 'nsfw']
+handler.help = ['korea']
+handler.command = ['korea']
+handler.premium = true
 
-export default handler;
+export default handler
