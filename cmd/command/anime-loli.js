@@ -1,10 +1,10 @@
 let handler = async(m, { conn }) => {
-  await conn.sendFile(m.chat, pickRandom(lolio), 'lolio.jpg', `_Nih Kak_`, m)
+  await conn.sendFile(m.chat, pickRandom(lolio), 'loli.jpg', `_Nih Kak_`, m)
 }
+
 handler.help = ['loli']
 handler.tags = ['anime']
 handler.command = /^loli$/i
-
 handler.premium = true
 handler.fail = null
 handler.register = false
