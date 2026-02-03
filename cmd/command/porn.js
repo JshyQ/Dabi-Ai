@@ -1,113 +1,130 @@
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
 
-let handler = async (m, {
-    conn,
-    args,
-    usedPrefix,
-    text,
-    command
-}) => {
+let handler = async (m, { conn, args, usedPrefix, text, command } = {}) => {
+  
+  if (!m || !conn) return
+  
+  const eror = '❌ *PORNHUB SEARCH ERROR*\nCoba lagi nanti atau pakai query lain!'
+  
+  let lister = ["search", "gif"]
+  let [feature, ...inputs] = text.split("|").map(v => v.trim())
+  inputs = inputs.join("|").trim()
+  
+  if (!lister.includes(feature)) {
+    return m.reply(`*📺 PORNHUB SEARCH*
 
-    let lister = [
-        "search",
-        "gif"
-    ]
+*Example:*
+\`${usedPrefix}${command} search|vpn\`
+\`${usedPrefix}${command} gif|asian\`
 
-    let [feature, inputs, inputs_, inputs__, inputs___] = text.split("|")
-    if (!lister.includes(feature)) return m.reply("*Example:*\n.pornhub search|vpn\n\n*Pilih type yg ada*\n" + lister.map((v, index) => "  ○ " + v).join("\n"))
-    
-    if (lister.includes(feature)) {
-    
-        if (feature == "search") {
-        if (!inputs) return m.reply("Input query")
-            try {
-                let res = await searchVideo(inputs)
-                let teks = res.map((item, index) => {
-                    return `*[ RESULT ${index + 1} ]*
-*Link:* ${item.link}
-*Title:* ${item.title}
-*Uploader:* ${item.uploader}
-*Views:* ${item.views}
-*Duration:* ${item.duration}
-`
-                }).filter(v => v).join("\n\n________________________\n\n")
-                await m.reply(teks)
-            } catch (e) {
-                await m.reply(eror)
-            }
-        }
-        if (feature == "gif") {
-        if (!inputs) return m.reply("Input query")
-            try {
-                let res = await searchGif(inputs)
-                let teks = res.map((item, index) => {
-                    return `*[ RESULT ${index + 1} ]*
-*Title:* ${item.title}
-*Url:* ${item.url}
-*Webm:* ${item.webm}
-`
-                }).filter(v => v).join("\n\n________________________\n\n")
-                await m.reply(teks)
-            } catch (e) {
-                await m.reply(eror)
-            }
-        }
-        
+*Pilih type:*
+${lister.map((v, i) => `○ ${v}`).join('\n')}`)
+  }
+  
+  if (feature == "search" && !inputs) {
+    return m.reply("❌ Input query untuk search!")
+  }
+  
+  if (feature == "gif" && !inputs) {
+    return m.reply("❌ Input query untuk gif!")
+  }
+  
+  try {
+    let res
+    if (feature == "search") {
+      res = await searchVideo(inputs)
+    } else {
+      res = await searchGif(inputs)
     }
+    
+    if (!res || res.length === 0) {
+      return m.reply('❌ No results found!')
+    }
+    
+    let teks = res.slice(0, 5).map((item, index) => {
+      if (feature == "search") {
+        return `*[ ${index + 1} ]*
+📺 *${item.title.substring(0, 50)}...*
+👤 ${item.uploader}
+👀 ${item.views}
+⏱️ ${item.duration}
+🔗 ${item.link}`
+      } else {
+        return `*[ ${index + 1} ]*
+🎬 *${item.title.substring(0, 40)}...*
+🔗 ${item.url}`
+      }
+    }).join('\n\n─────────────────\n\n')
+    
+    await m.reply(teks)
+    
+  } catch (e) {
+    console.error('Pornhub error:', e)
+    m.reply(eror)
+  }
 }
+
 handler.help = ["pornhub"]
-handler.tags = ["internet"]
+handler.tags = ["internet", "premium", "nsfw"]
 handler.command = /^(pornhub)$/i
+handler.premium = true
 export default handler
 
-/* New Line */
-async function searchVideo(query) {
-  const url = `https://www.pornhub.com/video/search?search=${query}`;
-  const response = await fetch(url);
-  const html = await response.text();
-  const $ = cheerio.load(html);
-  
-  const videoList = [];
 
-  $('li[data-video-segment]').each((index, element) => {
-    const $element = $(element);
-    
-    const link = $element.find('.title a').attr('href').trim();
-    const title = $element.find('.title a').text().trim();
-    const uploader = $element.find('.videoUploaderBlock a').text().trim();
-    const views = $element.find('.views').text().trim();
-    const duration = $element.find('.duration').text().trim();
-    
-    const videoData = {
-      link: "https://www.pornhub.com" + link,
-      title: title,
-      uploader: uploader,
-      views: views,
-      duration: duration
-    };
-    
-    videoList.push(videoData);
-  });
+async function searchVideo(query) {
+  const url = `https://www.pornhub.com/video/search?search=${encodeURIComponent(query)}`
+  const response = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+  })
+  const html = await response.text()
+  const $ = cheerio.load(html)
   
-  return videoList;
+  const videoList = []
+  $('li[data-rid]').slice(0, 10).each((i, el) => {
+    const $el = $(el)
+    const title = $el.find('.title a').text().trim()
+    const link = $el.find('.title a').attr('href')
+    const uploader = $el.find('.videoUploaderLink').text().trim()
+    const views = $el.find('.videoViewsBlock').text().trim()
+    const duration = $el.find('.duration').text().trim()
+    
+    if (title && link) {
+      videoList.push({
+        link: `https://www.pornhub.com${link}`,
+        title,
+        uploader: uploader || 'Unknown',
+        views: views || '0',
+        duration: duration || 'N/A'
+      })
+    }
+  })
+  return videoList
 }
 
+
 async function searchGif(query) {
-  const url = `http://www.pornhub.com/gifs/search?search=${query}`;
-  const response = await fetch(url);
-  const html = await response.text();
-  const $ = cheerio.load(html);
+  const url = `https://www.pornhub.com/gifs/search?search=${encodeURIComponent(query)}`
+  const response = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+  })
+  const html = await response.text()
+  const $ = cheerio.load(html)
   
-  const gifs = $('ul.gifs.gifLink li');
-
-    return gifs.map((i, gif) => {
-      const data = $(gif).find('a');
-
-      return {
-        title: data.find('span').text(),
-        url: 'http://dl.phncdn.com#id#.gif'.replace('#id#', data.attr('href')),
-        webm: data.find('video').attr('data-webm'),
-      };
-    }).get();
+  const gifs = []
+  $('div.gifs').find('a.phimage').slice(0, 10).each((i, el) => {
+    const $el = $(el)
+    const title = $el.find('.title').text().trim()
+    const href = $el.attr('href')
+    
+    if (title && href) {
+      const gifId = href.split('/')[2]
+      gifs.push({
+        title,
+        url: `https://ci.phncdn.com/videos/2023/${gifId}/720P_1800K_999999/${gifId}-720P.mp4`,
+        webm: `https://ci.phncdn.com/gifs/${gifId}_250.gif`
+      })
+    }
+  })
+  return gifs
 }
