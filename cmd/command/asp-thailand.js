@@ -1,22 +1,31 @@
-import fetch from 'node-fetch';
+let handler = async (m, { conn, command } = {}) => {
+  
+  if (!m || !conn) return
+  
+  try {
+    const waitMsg = await m.reply('⏳ Loading Thailand asupan...')
+    
+    let response = await fetch('https://api.tioprm.eu.org/thailand')
+    if (!response.ok) throw new Error('API gagal')
+    
+    const buffer = Buffer.from(await response.arrayBuffer())
+    
+    await conn.sendFile(m.chat, buffer, 'thailand.jpg', `
+🇹🇭 *THAILAND ASUPAN* 
+_Nih Kak_ 🔥`, m)
+    
+    waitMsg.delete() 
+    
+  } catch (error) {
+    console.error('Thailand plugin error:', error)
+    m.reply('❌ Gagal load Thailand asupan!\nCoba lagi nanti 😿')
+  }
+}
 
-let handler = async (m, { conn, command, isPrems }) => {
+handler.command = /^(thailand)$/i
+handler.tags = ['asupan', 'premium', 'nsfw']
+handler.help = ['thailand']
+handler.premium = true
+handler.limit = false
 
-    try {
-        let response = await fetch('https://api.tioprm.eu.org/thailand');
-        if (!response.ok) throw new Error('Gagal mengambil data dari API');
-        let buffer = await response.buffer(); // Mengambil data gambar sebagai buffer
-        conn.sendFile(m.chat, buffer, 'anu.jpg', '_Nih Kak_', m); // Mengirim buffer gambar langsung
-    } catch (error) {
-        console.error(error);
-        conn.reply(m.chat, 'Terjadi kesalahan saat memproses permintaan', m);
-    }
-};
-
-handler.command = /^(thailand)$/i;
-handler.tags = ['asupan','premium'];
-handler.help = ['thailand'];
-handler.premium = true;
-handler.limit = false;
-
-export default handler;
+export default handler
