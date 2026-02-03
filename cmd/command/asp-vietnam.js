@@ -1,32 +1,36 @@
-import fetch from 'node-fetch'
-
-const handler = async (m, { conn }) => {
+let handler = async (m, { conn } = {}) => {
+  
+  if (!m || !conn) return
+  
   try {
+   
     await conn.sendMessage(m.chat, {
-      react: {
-        text: '🇻🇳',
-        key: m.key
-      }
+      react: { text: '🇻🇳', key: m.key }
     })
 
+    const waitMsg = await m.reply('⏳ Loading Vietnam asupan...')
+    
     const res = await fetch('https://api.siputzx.my.id/api/r/cecan/vietnam')
-    const buffer = await res.buffer()
-
+    if (!res.ok) throw new Error('API gagal')
+    
+    const buffer = Buffer.from(await res.arrayBuffer())
+    
     await conn.sendMessage(m.chat, {
       image: buffer,
-      caption: 'Nih asupan vietnam buat kamu!',
+      caption: `🇻🇳 *VIETNAM ASUPAN* 
+Nih asupan Vietnam buat kamu! 🔥`,
     }, { quoted: m })
 
+    waitMsg.delete() 
+    
   } catch (err) {
-    console.error('Plugin cecan error:', err)
-    await conn.sendMessage(m.chat, {
-      text: 'Terjadi kesalahan saat mengambil gambar.',
-    }, { quoted: m })
+    console.error('Vietnam plugin error:', err)
+    m.reply('❌ Gagal load Vietnam asupan 😿\nCoba lagi nanti!')
   }
 }
 
 handler.command = ['vietnam']
-handler.tags = ['premium']
+handler.tags = ['premium', 'nsfw']
 handler.help = ['vietnam']
 handler.premium = true
 handler.limit = false
