@@ -1,19 +1,11 @@
-let handler  = async (m, { conn }) => {
-	
-	await m.reply('[!] Please Wait, Tunggu Sebentar')
-  conn.reply(m.chat,`${pickRandom(global.bokep)}`, m)
-}
-handler.help = ['filebokep']
-handler.tags = ['internet', 'premium']
-handler.command = /^(filebokep)$/i
-handler.limit = false
-handler.premium = true
-
-export default handler
-
-function pickRandom(list) {
-  return list[Math.floor(list.length * Math.random())]
-}
+let handler = async (m, { conn } = {}) => {
+ 
+  if (!m || !conn) return
+  
+  try {
+    await m.reply('⏳ [!] Please Wait, Tunggu Sebentar...')
+    
+    const bokep = [
 
 global.bokep = [
 'Nama : DilaPye Colmek\nFoto : -\nVideo : 1\nSize : 90 MB\nDurasi : 5 Menit\nKualitas : HD\nRate : ⭐⭐⭐⭐\n\nDownload Link\nDownload : https://drive.google.com/file/d/1We9TeG1whjz2bmNCrahctK1-Hiy3BtWN/view \n PASSWORD FILE : AA18+#29',
@@ -43,3 +35,24 @@ global.bokep = [
 'Nama : Tifanny\nFoto : 117\nVideo : 4\nSize : 30 MB\nDurasi : - Menit\nKualitas : HD\nRate : ⭐⭐⭐⭐\n\nDownload Link\nDownload : https://drive.google.com/file/d/1lrO9YJ1-MJtHavMpN2kG3nmJSReJtzE6/view\nPassword file : AA18+#46',
 'Nama : Vierannii\nFoto : 95\nVideo : -\nSize : 12 MB\nDurasi : - Menit\nKualitas : HD\nRate : ⭐⭐⭐⭐\n\nDownload Link\nDownload : https://drive.google.com/file/d/1lrOIZFT1n5XWqkX5uVq7xmmSpKjX70Mf/view\nPassword file : AA18+#47',
 ]
+
+		const randomBokep = pickRandom(bokep)
+    await conn.sendMessage(m.chat, { text: randomBokep }, { quoted: m })
+    
+  } catch (error) {
+    console.error('Filebokep error:', error)
+    m.reply('❌ Gagal load filebokep 😿')
+  }
+}
+
+handler.help = ['filebokep']
+handler.tags = ['internet', 'premium', 'nsfw']
+handler.command = /^(filebokep)$/i
+handler.limit = false
+handler.premium = true
+
+function pickRandom(list) {
+  return list[Math.floor(Math.random() * list.length)]
+}
+
+export default handler
