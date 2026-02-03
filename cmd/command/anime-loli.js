@@ -1,5 +1,14 @@
-let handler = async(m, { conn }) => {
-  await conn.sendFile(m.chat, pickRandom(lolio), 'loli.jpg', `_Nih Kak_`, m)
+let handler = async (m, { conn, usedPrefix, command }) => {
+  if (!conn) return console.log('conn not available during load')
+  
+  try {
+    await conn.sendMessage(m.chat, { 
+      image: { url: pickRandom(lolio) }, 
+      caption: `_Nih Kak_` 
+    }, { quoted: m })
+  } catch (e) {
+    m.reply('❌ Loli load failed')
+  }
 }
 
 handler.help = ['loli']
@@ -9,10 +18,8 @@ handler.premium = true
 handler.fail = null
 handler.register = false
 
-export default handler
-
 function pickRandom(list) {
-  return list[Math.floor(list.length * Math.random())]
+  return list[Math.floor(Math.random() * list.length)]
 }
 
 const lolio = [
