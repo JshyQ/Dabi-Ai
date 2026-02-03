@@ -1,27 +1,36 @@
-import fetch from 'node-fetch'
-
-let handler = async (m, { conn, usedPrefix, command }) => {
-
-m.reply(wait)
-let res = await fetch('https://api.waifu.pics/nsfw/neko')
-
-if (!res.ok) return m.react('❌')
-
-let json = await res.json()
-
-if (!json.url) return m.react('❌')
-
-await conn.sendFile(m.chat, json.url, 'xneko.png', '*RANDOM NEKO*', m)
-
-
+let handler = async (m, { conn, usedPrefix, command } = {}) => {
+ 
+  if (!m || !conn) return
+  
+  const wait = '⏳ Loading random neko...'
+  m.reply(wait)
+  
+  try {
+    let res = await fetch('https://api.waifu.pics/nsfw/neko', { 
+      timeout: 10000 
+    })
+    
+    if (!res.ok) return m.reply('❌ API error, coba lagi!')
+    
+    let json = await res.json()
+    
+    if (!json.url) return m.reply('❌ No image found')
+    
+    await conn.sendFile(m.chat, json.url, 'neko.png', `
+🐱 *RANDOM NEKO* 
+💫 waifu.pics/nsfw/neko`, m)
+    
+    m.react('😻')
+    
+  } catch (e) {
+    console.error('xneko error:', e)
+    m.reply('❌ Failed to load neko 😿')
+  }
 }
 
 handler.help = ['xneko']
-
-handler.tags = ['anime']
-
-handler.command = ['xneko']
-
+handler.tags = ['nsfw', 'anime']
+handler.command = ['xneko', 'neko']
 handler.premium = true
 
 export default handler
