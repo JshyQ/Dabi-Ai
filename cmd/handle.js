@@ -7,12 +7,12 @@ import { authUser, role } from '../system/db/data.js';
 import { own } from '../system/helper.js';
 import { cekSpam, _tax } from '../system/function.js';
 
-const dir = p.join(dirname, "../cmd/command");  
+const dir = p.join(dirname, "../cmd/command"); 
 
 class CommandEmitter extends EventEmitter {
- 
-  on(def) {
-    if (typeof def !== "object" || !def.cmd) return super.on(def);
+
+  on(def, listener) {
+    if (typeof def !== "object" || !def.cmd) return super.on(def, listener);
     const cmds = Array.isArray(def.cmd) ? def.cmd : [def.cmd];
     for (const c2 of cmds) {
       const low = c2.toLowerCase();
@@ -32,7 +32,6 @@ class CommandEmitter extends EventEmitter {
 
 const ev = new CommandEmitter();
 
-
 const unloadByFile = file => {
   if (!file || !ev.cmd) return;
   const targets = ev.cmd.filter(x => x.file === file);
@@ -44,16 +43,15 @@ const unloadByFile = file => {
   ev.cmd = ev.cmd.filter(x => x.file !== file);
 };
 
-
 const loadFile = async (f, isReload = true) => {
   const originalOn = ev.on.bind(ev);
   try {
     const fp = p.join(dir, f),
           moduleUrl = `${fp}?update=${Date.now()}`;
     if (isReload) unloadByFile(f);
-    ev.on = def => {
+    ev.on = (def, listener) => {
       if (typeof def === 'object' && def.cmd) def.file = f;
-      originalOn(def);
+      originalOn(def, listener);
     };
     const mod = await import(moduleUrl).then(m => m.default || m);
     if (typeof mod === "function" && mod.command) {
@@ -91,14 +89,12 @@ const loadFile = async (f, isReload = true) => {
   }
 };
 
-
 const loadAll = async () => {
   const files = fs.readdirSync(dir).filter(x => x.endsWith(".js"));
   for (const f of files) await loadFile(f, true);
   const total = ev.cmd ? ev.cmd.length : 0;
   log(c.greenBright.bgGrey.bold(`Berhasil memuat ${total} cmd`));
 };
-
 
 const watch = () => {
   const debounceTimers = {};
@@ -120,7 +116,6 @@ const watch = () => {
     }
   }
 };
-
 
 const handleCmd = async (m, xp, store) => {
   try {
