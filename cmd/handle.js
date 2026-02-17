@@ -1,8 +1,18 @@
 diff --git a/cmd/handle.js b/cmd/handle.js
-index c6ebe321aa08396c543d37394eb401172d323f95..0ceda18d9b644d112a5c027823ee896b237e8c16 100644
+index c6ebe321aa08396c543d37394eb401172d323f95..02e170622fdd6e3b227404d0f35161cfe60e13c4 100644
 --- a/cmd/handle.js
 +++ b/cmd/handle.js
-@@ -31,51 +31,82 @@ class CommandEmitter extends EventEmitter {
+@@ -21,64 +21,96 @@ class CommandEmitter extends EventEmitter {
+           if (def.owner && !own(m)) return
+           await def.run(xp, m, extra)
+         } catch (e) {
+           err(c.redBright.bold(`Error ${def.name || c2}: `), e)
+         }
+       })
+     }
+     ;(this.cmd ??= []).push(def)
+   }
+ }
  
  const ev = new CommandEmitter()
  
@@ -18,17 +28,19 @@ index c6ebe321aa08396c543d37394eb401172d323f95..0ceda18d9b644d112a5c027823ee896b
  }
  
  const loadFile = async (f, isReload = !0) => {
++  const originalOn = ev.on.bind(ev)
    try {
      const fp = p.join(dir, f),
            moduleUrl = `${fp}?update=${Date.now()}`
      isReload ? unloadByFile(f) : null
-     const originalOn = ev.on.bind(ev)
+-    const originalOn = ev.on.bind(ev)
      ev.on = def => {
        if (typeof def === 'object' && def.cmd) def.file = f
        originalOn(def)
      }
      const mod = await import(moduleUrl).then(m => m.default || m)
 -    typeof mod === "function" ? mod(ev) : null
+-    ev.on = originalOn
 +
 +    if (typeof mod === "function" && mod.command) {
 +      const parseCmd = input => {
@@ -61,9 +73,10 @@ index c6ebe321aa08396c543d37394eb401172d323f95..0ceda18d9b644d112a5c027823ee896b
 +      })
 +    } else if (typeof mod === "function") mod(ev)
 +
-     ev.on = originalOn
    } catch (e) {
      err('error pada loadFile', e)
++  } finally {
++    ev.on = originalOn
    }
  }
  
@@ -86,7 +99,10 @@ index c6ebe321aa08396c543d37394eb401172d323f95..0ceda18d9b644d112a5c027823ee896b
        }, 3e2)
      })
    } catch {
-@@ -142,26 +173,26 @@ const handleCmd = async (m, xp, store) => {
+     for (const f of fs.readdirSync(dir).filter(x => x.endsWith(".js"))) {
+       fs.watchFile(p.join(dir, f), () => {
+         log(c.cyanBright.bold(`${f} diedit`))
+@@ -142,26 +174,26 @@ const handleCmd = async (m, xp, store) => {
          p.join(dirname, './db/bank.json'),
          JSON.stringify(bankDb, null, 2),
          'utf-8'
